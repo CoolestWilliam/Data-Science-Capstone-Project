@@ -1,0 +1,149 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import statsmodels.api as sm
+from scipy.stats import linregress
+from scipy import stats
+from sklearn.metrics import r2_score
+from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
+from sklearn.decomposition import PCA
+from scipy.special import expit
+from sklearn.metrics import accuracy_score, roc_auc_score from sklearn.model_selection import train_test_split
+np.random.seed(13900968)
+data = pd.read_csv("spotify52kData.csv")
+# Question 1
+features = ['duration', 'danceability', 'energy', 'loudness', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo']
+for i in features:
+feature = data[i]
+feature = feature.dropna()
+plt.figure() # Create a new figure for each histogram feature.hist(bins=50)
+plt.xlabel(i) # Use the name of the feature for the x-axis label plt.ylabel("Frequency")
+plt.title("Distribution of " + i)
+plt.show()
+# Question 2
+duration = data["duration"].dropna() popularity = data['popularity'].dropna()
+duration_popularity_coef = np.corrcoef(duration, popularity)
+plt.plot(duration, popularity, "o")
+plt.xlabel("Duration") # Change here to use string descriptions plt.ylabel("Popularity") # Change here to use string descriptions plt.title("Correlation between Duration and Popularity") plt.show()
+result = sm.OLS(popularity, duration).fit() print(result.summary())
+# Question 3
+explicit_data = data[data['explicit']]['popularity'] non_explicit_data = data[~data['explicit']]['popularity']
+u_explicit, p_explicit = stats.mannwhitneyu(explicit_data,non_explicit_data)
+
+print("The p-value is: " + str(p_explicit))
+print("The mean of explicit songs: " + str(np.mean(explicit_data))) print("The mean of implicit songs: " + str(np.mean(non_explicit_data))) print("The median of explicit songs: " + str(np.median(explicit_data))) print("The median of implicit songs: " + str(np.median(non_explicit_data)))
+# Question 4
+major_data = data[data['mode']==1]['popularity'] minor_data = data[data['mode']==0]['popularity']
+print("Major song mean popularity: ") print(np.mean(major_data)) print("Minor song mean popularity: ") print(np.mean(minor_data))
+u_mode, p_mode = stats.mannwhitneyu(major_data,minor_data) print(p_mode)
+# Question 5
+energy = data["energy"].dropna() loudness = data["loudness"].dropna()
+energy_loudness_coef = np.corrcoef(energy,loudness)
+print("Energy and Loudness correlation coebicient: " + str(energy_loudness_coef)) plt.plot(energy, loudness, "o")
+plt.xlabel("Energy") # Change here to use string descriptions
+
+plt.ylabel("Loudness") # Change here to use string descriptions plt.title("Correlation between Energy and Loudness")
+plt.show()
+# Question 6
+result_duration = sm.OLS(popularity, duration).fit() print(result_duration.summary())
+danceability = data["danceability"].dropna() result_danceability = sm.OLS(popularity, danceability).fit() print(result_danceability.summary())
+result_energy = sm.OLS(popularity, energy).fit() print(result_energy.summary())
+result_loudness = sm.OLS(popularity, loudness).fit() print(result_loudness.summary())
+speechiness = data["speechiness"].dropna() result_speechiness = sm.OLS(popularity, speechiness).fit() print(result_speechiness.summary())
+acousticness = data["acousticness"].dropna() result_acousticness = sm.OLS(popularity, acousticness).fit() print(result_acousticness.summary())
+
+instrumentalness = data["instrumentalness"].dropna() result_instrumentalness = sm.OLS(popularity,instrumentalness).fit() print(result_instrumentalness.summary())
+liveness = data["liveness"].dropna() result_liveness = sm.OLS(popularity,liveness).fit() print(result_liveness.summary())
+valence = data["valence"].dropna() result_valence = sm.OLS(popularity,valence).fit() print(result_valence.summary())
+tempo = data["tempo"].dropna() result_tempo = sm.OLS(popularity,tempo).fit() print(result_tempo.summary())
+# Question 7
+features_combined = np.stack((duration,danceability,energy,loudness,speechiness,acousticness,instrumentaln ess,liveness,valence,tempo),axis=1)
+result_combined = sm.OLS(popularity,features_combined).fit() print(result_combined.summary())
+# Question 8
+zscore_features = stats.zscore(features_combined) pca = PCA().fit(zscore_features)
+eigVals = pca.explained_variance_
+
+loadings = pca.components_ varExplained = eigVals/sum(eigVals)*100
+num_features = 10
+x = np.linspace(1,num_features,num_features) plt.bar(x, eigVals, color='gray') plt.plot([0,num_features],[1,1],color='orange') plt.xlabel('Principal component') plt.ylabel('Eigenvalue')
+plt.show()
+kaiserThreshold = 1
+print('Number of factors selected by Kaiser criterion:', np.count_nonzero(eigVals > kaiserThreshold))
+print("Variance explained by the principal component factors: ", sum(varExplained[0:3]))
+whichPrincipalComponent = 0 # Select and look at one factor at a time, in Python indexing
+plt.bar(x,loadings[whichPrincipalComponent,:]*-1) # note: eigVecs multiplied by -1 because the direction is arbitrary
+#and Python reliably picks the wrong one. So we flip it. plt.xlabel('Question')
+plt.ylabel('Loading')
+plt.show()
+whichPrincipalComponent = 1 # Select and look at one factor at a time, in Python indexing
+
+plt.bar(x,loadings[whichPrincipalComponent,:]*-1) # note: eigVecs multiplied by -1 because the direction is arbitrary
+#and Python reliably picks the wrong one. So we flip it. plt.xlabel('Question')
+plt.ylabel('Loading')
+plt.show()
+whichPrincipalComponent = 2 # Select and look at one factor at a time, in Python indexing
+plt.bar(x,loadings[whichPrincipalComponent,:]*-1) # note: eigVecs multiplied by -1 because the direction is arbitrary
+#and Python reliably picks the wrong one. So we flip it. plt.xlabel('Question')
+plt.ylabel('Loading')
+plt.show()
+# Question 9
+valence = data['valence'] mode = data['mode']
+X_train, X_test, y_train, y_test = train_test_split(valence.values.reshape(-1, 1), mode, test_size=0.2, random_state=13900968)
+# Create and train the logistic regression model model = LogisticRegression()
+model.fit(X_train, y_train)
+# Create a scatter plot
+
+plt.scatter(valence, mode, color='black', s=1) # Adjusted s for better visibility plt.xlabel('Valence')
+plt.xlim([0, 1])
+plt.ylabel('Mode')
+plt.yticks([0, 1])
+plt.title('Valence vs. Mode with Logistic Regression Decision Boundary')
+# Generate a sequence of valence values from 0 to 1 valence_range = np.linspace(0, 1, 300).reshape(-1, 1)
+# Predict probabilities for these values
+predicted_probabilities = model.predict_proba(valence_range)[:, 1]
+# Plot the logistic regression decision boundary
+plt.plot(valence_range, predicted_probabilities, color='red', linewidth=2) plt.show()
+# Predict probabilities for the test set y_pred_proba = model.predict_proba(X_test)[:, 1]
+# Calculate ROC AUC
+roc_auc = roc_auc_score(y_test, y_pred_proba) print(f'ROC AUC: {roc_auc}')
+# Looking for better predictor
+plt.scatter(speechiness, mode, color='black', s=1) # Use a visible dot size for clarity
+
+plt.xlabel('Speechiness')
+plt.xlim([0, 1])
+plt.ylabel('Mode')
+plt.yticks([0, 1])
+plt.title('Scatter Plot with Logistic Regression Decision Boundary')
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(speechiness.values.reshape(-1, 1), mode, test_size=0.2, random_state=13900968)
+# Create and train the logistic regression model model = LogisticRegression()
+model.fit(X_train, y_train)
+# Predict probabilities for the test set y_pred_proba = model.predict_proba(X_test)[:, 1]
+# Calculate ROC AUC
+roc_auc = roc_auc_score(y_test, y_pred_proba) print(f'ROC AUC: {roc_auc}')
+# Generate a sequence of speechiness values from 0 to 1 speechiness_range = np.linspace(0, 1, 300).reshape(-1, 1)
+# Predict probabilities for these values
+predicted_probabilities = model.predict_proba(speechiness_range)[:, 1]
+
+# Plot the logistic regression decision boundary
+plt.plot(speechiness_range, predicted_probabilities, color='red', linewidth=2) plt.show()
+# Question 10
+df = pd.DataFrame(data)
+# Convert genre to a binary numerical label: 1 if classical, 0 otherwise df['is_classical'] = df['track_genre'].apply(lambda x: 1 if x == 'classical' else 0)
+# Display the modified DataFrame print(df)
+genre_x_train, genre_x_test, genre_y_train, genre_y_test = train_test_split(df["duration"].values.reshape(-1, 1), df["is_classical"], test_size=0.2, random_state=13900968)
+model = LogisticRegression() model.fit(genre_x_train, genre_y_train)
+y_pred_genre = model.predict_proba(genre_x_test)[:, 1]
+roc_auc_genre = roc_auc_score(genre_y_test, y_pred_genre) print(f'AUC of predicting with duration: {roc_auc_genre}')
+predictor_combined = np.stack((loudness,danceability,instrumentalness),axis=1)
+
+genre_x2_train, genre_x2_test, genre_y2_train, genre_y2_test = train_test_split(predictor_combined, df["is_classical"], test_size=0.2, random_state=13900968)
+model = LogisticRegression() model.fit(genre_x2_train, genre_y2_train)
+y_pred_genre2 = model.predict_proba(genre_x2_test)[:, 1]
+roc_auc_genre2 = roc_auc_score(genre_y2_test, y_pred_genre2)
+print(f'AUC of predicting with three principal components: {roc_auc_genre2}')
+# Extra Credit
+time_signature = data["time_signature"] plt.figure()
+time_signature.hist(bins=50) plt.xlabel(time_signature) plt.ylabel("Frequency") plt.title("Distribution of time_signature") plt.show()
+time_singnature0 = data[data["time_signature"]==0]
